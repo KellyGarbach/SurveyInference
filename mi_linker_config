@@ -1,0 +1,20 @@
+ID	TYPE	Delimiter	ID-Chars	Data-Chars
+Respondent	Respondent		opername_Anonymous	opername_Role___County___Apple___Blueberry___Cherry___Quest1___Quest3___Quest4a___Quest7c
+PartnerA	Partner		Quest14a_Name_Anonymous___Quest14a_Role_Cleaned___Quest14a_RoleCategory	Quest14a_Role
+PartnerB	Partner		Quest14b_Name_Anonymous___Quest14b_Role_Cleaned___Quest14b_RoleCategory	Quest14b_Role
+PartnerC	Partner		Quest14c_Name_Anonymous___Quest14c_Role_Cleaned___Quest14c_RoleCategory	Quest14c_Role
+PartnerD	Partner		Quest14d_Name_Anonymous___Quest14d_Role_Cleaned___Quest14d_RoleCategory	Quest14d_Role
+PartnerE	Partner		Quest14e_Name_Anonymous___Quest14e_Role_Cleaned___Quest14e_RoleCategory	Quest14e_Role
+PolInfo	PollinatorInfo	,	Quest10	
+GrowerOrg	GrowerOrganizations	,	Quest15	
+ConservationOrg	ConservationOrganizations	,	Quest16	
+Quest3	Practice		Quest3	
+Quest4a	Practice		Quest4a	
+7a	Practice		Quest7a	
+7b	Practice		Quest7b	
+7c	Practice		Quest7c	
+7d	Practice		Quest7d	
+7e	Practice		Quest7e	
+7f	Practice		Quest7f	
+7g	Practice		Quest7g	
+7h	Practice		Quest7h	
