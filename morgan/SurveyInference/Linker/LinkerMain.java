@@ -181,7 +181,7 @@ public class LinkerMain {
 		uniqueNodeID = uniqueNodeID.replaceAll("&", "+");
 		
 		if(!uniqueNodes.containsKey(uniqueNodeID)) {
-			uniqueNodes.put(uniqueNodeID, new IdentifiedNode(uniqueNodeID, definition.type));
+			uniqueNodes.put(uniqueNodeID, new IdentifiedNode(uniqueNodeID, definition.getType()));
 		}
 		IdentifiedNode theEntity = uniqueNodes.get(uniqueNodeID);
 		//theEntity.addCharacteristic("ID_From_Data", uniqueNodeID);

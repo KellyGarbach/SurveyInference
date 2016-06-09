@@ -57,7 +57,7 @@ public class LinkerFrame extends JFrame implements ActionListener {
 	/**
 	 * The headers of the chosen data-file
 	 */
-	static String[] dataFileHeaders;
+	static ArrayList<String> dataFileHeaders;
 	
 	/**
 	 * A set of definitions, specified by their unique definition ID
@@ -87,10 +87,10 @@ public class LinkerFrame extends JFrame implements ActionListener {
 		super(title);
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		dataFileHeaders = new String[headers.size()];
+		dataFileHeaders = new ArrayList<String>();
 		for(int i = 0; i < headers.size(); ++i) {
 			//System.out.println(headers.get(i));
-			dataFileHeaders[i] = headers.get(i);
+			dataFileHeaders.add(headers.get(i));
 		}
 		nodeTypes = theCollaborators;
 		initializeFromState();

@@ -133,7 +133,7 @@ public class NodeDefinitionPanel extends JPanel implements ActionListener, KeyLi
 		idPanel.add(UsefulGUIMethods.getRightOrientedJLabel("Type:"));
 		idPanel.add(Box.createHorizontalStrut(UsefulGUIMethods.DEFAULT_SPACING));
 		typeField = new JTextField(20);
-		typeField.setText(theDefinition.type);
+		typeField.setText(theDefinition.getType());
 		typeField.addActionListener(this);
 		idPanel.add(typeField);
 		idPanel.add(Box.createHorizontalStrut(UsefulGUIMethods.DEFAULT_SPACING));
@@ -173,7 +173,9 @@ public class NodeDefinitionPanel extends JPanel implements ActionListener, KeyLi
 		this.add(idCharacteristics);
 		
 		for(String idChar : theDefinition.identifyingCharacteristics) {
-			JComboBox<String> combo = new JComboBox<String>(LinkerFrame.dataFileHeaders);
+			String[] headerChoices = new String[LinkerFrame.dataFileHeaders.size()];
+			headerChoices = LinkerFrame.dataFileHeaders.toArray(headerChoices);
+			JComboBox<String> combo = new JComboBox<String>(headerChoices);
 			int selectedIndex = -1;
 			for(int i = 0; i < combo.getItemCount(); ++i) {
 				String s = combo.getItemAt(i).trim();
@@ -207,7 +209,9 @@ public class NodeDefinitionPanel extends JPanel implements ActionListener, KeyLi
 		this.add(dataCharacteristics);
 		
 		for(String dataChar : theDefinition.otherCharacteristics) {
-			JComboBox<String> combo = new JComboBox<String>(LinkerFrame.dataFileHeaders);
+			String[] headerChoices = new String[LinkerFrame.dataFileHeaders.size()];
+			headerChoices = LinkerFrame.dataFileHeaders.toArray(headerChoices);
+			JComboBox<String> combo = new JComboBox<String>(headerChoices);
 			int selectedIndex = -1;
 			for(int i = 0; i < combo.getItemCount(); ++i) {
 				String s = combo.getItemAt(i).trim();
@@ -247,10 +251,10 @@ public class NodeDefinitionPanel extends JPanel implements ActionListener, KeyLi
 			theDefinition.id = idField.getText();
 		}
 		else if(ae.getSource().equals(typeField)) {
-			theDefinition.type = typeField.getText();
+			theDefinition.setType(typeField.getText());
 		}
 		else if(ae.getSource().equals(addIDChar)) {
-			String[] options = new String[LinkerFrame.dataFileHeaders.length - theDefinition.identifyingCharacteristics.size()];
+			String[] options = new String[LinkerFrame.dataFileHeaders.size() - theDefinition.identifyingCharacteristics.size()];
 			int i = 0;
 			for(String h : LinkerFrame.dataFileHeaders) {
 				if(!theDefinition.identifyingCharacteristics.contains(h)) {
@@ -268,7 +272,7 @@ public class NodeDefinitionPanel extends JPanel implements ActionListener, KeyLi
 			
 		}
 		else if(ae.getSource().equals(addDataChar)) {
-			String[] options = new String[LinkerFrame.dataFileHeaders.length - theDefinition.otherCharacteristics.size()];
+			String[] options = new String[LinkerFrame.dataFileHeaders.size() - theDefinition.otherCharacteristics.size()];
 			int i = 0;
 			for(String h : LinkerFrame.dataFileHeaders) {
 				if(!theDefinition.otherCharacteristics.contains(h)) {

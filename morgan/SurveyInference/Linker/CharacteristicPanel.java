@@ -83,7 +83,9 @@ public class CharacteristicPanel extends JPanel implements ActionListener {
 		currentSelectedIndex = selectedIndex;
 		IDCharacteristic = isID;
 		
-		combo = new JComboBox<String>(LinkerFrame.dataFileHeaders);
+		String[] headerArray = new String[LinkerFrame.dataFileHeaders.size()];
+		headerArray = LinkerFrame.dataFileHeaders.toArray(headerArray);
+		combo = new JComboBox<String>(headerArray);
 		combo.setSelectedIndex(selectedIndex);
 		combo.addActionListener(this);
 		this.add(combo);

@@ -60,7 +60,7 @@ public class NodeDefinition {
 	/**
 	 * The type of node produced by this definition
 	 */
-	String type;
+	private String type;
 	/**
 	 * The Delimiter may not be enabled
 	 */
@@ -136,7 +136,7 @@ public class NodeDefinition {
 	 * @param c, the data characteristic to add
 	 */
 	void addDataCharacteristic(String c) {
-		if(!otherCharacteristics.contains(c)) {
+		if(!otherCharacteristics.contains(c) || !c.equals("")) {
 			otherCharacteristics.add(c);
 		}
 	}
@@ -199,10 +199,22 @@ public class NodeDefinition {
 		String[] idCharArray = idCharsRaw.split("___");
 		String[] dataCharArray = dataCharsRaw.split("___");
 		for(String s : idCharArray) {
-			temp.addIDCharacteristic(s);
+			if(LinkerFrame.dataFileHeaders.contains(s)) {
+				temp.addIDCharacteristic(s);
+			}
+			else {
+				System.out.println("Attribute " + s + " is not in the data file. Skipping it.");
+			}
+			
 		}
 		for(String s : dataCharArray) {
-			temp.addDataCharacteristic(s);
+			if(LinkerFrame.dataFileHeaders.contains(s)) {
+				temp.addDataCharacteristic(s);
+			}
+			else {
+				System.out.println("Attribute " + s + " is not in the data file. Skipping it.");
+			}
+			
 		}
 		
 		return temp;
@@ -256,5 +268,15 @@ public class NodeDefinition {
 		return tempCollabs;
 	}
 	
+	void setType(String newType) {
+		this.type = newType;
+		if(!uniqueTypes.contains(newType)) {
+			uniqueTypes.add(newType);
+		}
+	}
+	
+	String getType() {
+		return this.type;
+	}
 
 }
