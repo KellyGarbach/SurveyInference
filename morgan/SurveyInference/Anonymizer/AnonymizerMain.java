@@ -19,7 +19,7 @@
  * You can also read the license directly at: http://www.gnu.org/licenses/gpl-2.0.html
  *
  * You can contact the authors by e-mailing kgarbach@luc.edu
-*/
+ */
 
 package morgan.SurveyInference.Anonymizer;
 
@@ -150,6 +150,16 @@ public class AnonymizerMain {
 	 */
 	static boolean columnHasRole = true;
 
+	/**
+	 * This variable controls whether, post reconcliation, the tool should create
+	 * anonymous tokens to replace all unique values and then delete original data
+	 * from memory.
+	 * 
+	 * By default, this is true.  If this is not true, a warning is presented to the
+	 * GUI operator to indicate that anonymization is not on - given the default assumption
+	 * inherent in the name of the tool (Anonymizer)
+	 */
+	static boolean anonymize = true;
 
 	/**
 	 * This is the main execution thread of the program.  It does the following:
@@ -174,8 +184,14 @@ public class AnonymizerMain {
 		} catch (Exception e) {
 			System.out.println("Error reading configuration file, using defaults!");
 		}
+		String dialogTitle = "Select data file for Anonymization";
+		if(!anonymize) {
+			dialogTitle = "Select data file for reconciliation";
+			JOptionPane.showMessageDialog(null, "Based on current configuration,\nentries will NOT be anonymized.", "Not Anonymizing Entries", JOptionPane.WARNING_MESSAGE);
+		}
+
 		JFileChooser dataFileChooser = new JFileChooser(".");
-		dataFileChooser.setDialogTitle("Select data file to anonymize.");
+		dataFileChooser.setDialogTitle(dialogTitle);
 		dataFileChooser.setFileFilter(new TXTFileFilter());
 		int returnVal = dataFileChooser.showOpenDialog(null);
 		if(returnVal == JFileChooser.APPROVE_OPTION) {
@@ -211,9 +227,11 @@ public class AnonymizerMain {
 				//    Quest14a_Role, Quest14b_Role, Quest14c_Role, Quest14d_Role, Quest14e_Role,
 				Thread.sleep(1000);
 				cleanParticipants(pData);
-				// 5. Create "anonymous names"
-				Thread.sleep(1000);
-				anonymizeParticipants(pData);
+				if(anonymize) {
+					// 5. Create "anonymous names"
+					Thread.sleep(1000);
+					anonymizeParticipants(pData);
+				}
 				// 6. Output new file
 				File fileToWrite = new File(dataFile.getParentFile().getCanonicalPath() + "//Cleaned_" + dataFile.getName());
 				writeDataFile(fileToWrite, pData);
@@ -261,6 +279,13 @@ public class AnonymizerMain {
 		reader.close();
 
 		for(String flag : dataMap.keySet()) {
+			if(flag.equalsIgnoreCase("anonymize")) {
+				try {
+					anonymize = Boolean.parseBoolean(dataMap.get(flag));
+				} catch (Exception e) {
+					JOptionPane.showMessageDialog(null,  "Boolean value for configuration flag " + flag + " expected, but not found. " + dataMap.get(flag) + " was found.  Please replace with true/false.", "Configuration File Error: " + configFile.getName(), JOptionPane.ERROR_MESSAGE);
+				}
+			}
 			if(flag.equalsIgnoreCase("columnsToAnonymize")) {
 				columnsToAnonymize = dataMap.get(flag).split(",");
 			}
@@ -277,19 +302,27 @@ public class AnonymizerMain {
 				implicitRole = dataMap.get(flag);
 			}
 			else if(flag.equalsIgnoreCase("columnHasRole")) {
-				columnHasRole = Boolean.parseBoolean(dataMap.get(flag));
+				try {
+					columnHasRole = Boolean.parseBoolean(dataMap.get(flag));
+				} catch (Exception e) {
+					JOptionPane.showMessageDialog(null,  "Boolean value for configuration flag " + flag + " expected, but not found. " + dataMap.get(flag) + " was found.  Please replace with true/false.", "Configuration File Error: " + configFile.getName(), JOptionPane.ERROR_MESSAGE);
+				}
 			}
 			else if(flag.equalsIgnoreCase("cleaningThresholds")) {
-				if(!dataMap.get(flag).equals("")) {
-					String[] values = dataMap.get(flag).split(",");
-					int[] intValues = new int[values.length];
-					for(int i = 0; i < values.length; ++i) {
-						intValues[i] = Integer.parseInt(values[i]);
+				try {
+					if(!dataMap.get(flag).equals("")) {
+						String[] values = dataMap.get(flag).split(",");
+						int[] intValues = new int[values.length];
+						for(int i = 0; i < values.length; ++i) {
+							intValues[i] = Integer.parseInt(values[i]);
+						}
+						cleaningThresholds = intValues;
 					}
-					cleaningThresholds = intValues;
-				}
-				else {
-					cleaningThresholds = null;
+					else {
+						cleaningThresholds = null;
+					}
+				} catch (Exception e) {
+					JOptionPane.showMessageDialog(null,  "Integer values for configuration flag " + flag + " expected, but not found. " + dataMap.get(flag) + " was found.  Please replace with only integers.", "Configuration File Error: " + configFile.getName(), JOptionPane.ERROR_MESSAGE);
 				}
 			}
 			else {
@@ -321,7 +354,7 @@ public class AnonymizerMain {
 			//System.out.println(headerElements[i]);
 		}
 		Collections.addAll(headers, headerElements);
-		
+
 		textField.setText(textField.getText() + "\nConfiguring...");
 		for(String partner : columnsToAnonymize) {	
 			if(!headers.contains(partner)) {
@@ -333,8 +366,8 @@ public class AnonymizerMain {
 				textField.setText(textField.getText() + "\n\tAnonymization Column, " + operator + ", not found!");
 			}
 		}
-		
-		
+
+
 
 		while(reader.ready()) {
 			HashMap<String, String> participant = new HashMap<String, String>();
@@ -507,7 +540,7 @@ public class AnonymizerMain {
 				cleanedInfo = getClosestName(closestThreshold, info, uniqueSet);
 
 			}
-			//textField.setText(textField.getText() + "\n\t" + key + " - " + info + ":" + cleanedInfo);
+			textField.setText(textField.getText() + "\n\t" + key + " - " + info + ":" + cleanedInfo);
 			participant.put(key + cleanExtension, cleanedInfo);
 		}
 	}
@@ -624,7 +657,9 @@ public class AnonymizerMain {
 	 */
 	static void writeDataFile(File f, ArrayList<HashMap<String, String>> pData) throws IOException {
 
-		removeHeaderElements();
+		if(anonymize) {
+			removeHeaderElements();
+		}
 		Collections.sort(headers);
 
 		int counter = 0;
