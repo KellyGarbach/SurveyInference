@@ -101,7 +101,7 @@ public class IdentifiedNode {
 	 * @param originalKey, the key to be simplified
 	 * @return the simplified key
 	 */
-	String simplifyKey(String originalKey) {
+	static String simplifyKey(String originalKey) {
 		if(originalKey.contains("Name_Anonymous")) {
 			return "Name_Anonymous";
 		}

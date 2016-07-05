@@ -100,8 +100,7 @@ public class LinkerFrame extends JFrame implements ActionListener {
 	public void initializeFromState() {
 		contentPanel = new JPanel();
 		contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.PAGE_AXIS));
-		
-		
+			
 		JPanel titlePanel = UsefulGUIMethods.getLineAxisJPanel();
 		titlePanel.add(Box.createHorizontalGlue());
 		titlePanel.add(UsefulGUIMethods.getCenterOrientedJLabel("Linker: Identifying Network Ties"));
@@ -147,6 +146,7 @@ public class LinkerFrame extends JFrame implements ActionListener {
 		linkagePanel.add(processLinkagesButton);
 		linkagePanel.add(Box.createHorizontalGlue());
 		contentPanel.add(linkagePanel);
+		contentPanel.add(Box.createVerticalStrut(10));
 
 		tabbedPane = new JTabbedPane();
 		tabbedPane.setPreferredSize(new Dimension(900,400));
@@ -177,9 +177,40 @@ public class LinkerFrame extends JFrame implements ActionListener {
 		if(ae.getSource().equals(processLinkagesButton)) {
 			HashMap<String, IdentifiedNode> nodes = LinkerMain.identifyUniqueNodes(LinkerMain.nodeDefinitions, LinkerMain.pData);
 			JOptionPane.showMessageDialog(this, "Number of Nodes Found: " + nodes.size());
+			
+			NetworkSelectionDialog netD = new NetworkSelectionDialog(null, nodes);
+			netD.setVisible(true);
 			//System.out.println("Number of Nodes: " + nodes.size());
 			try {
-				LinkerMain.writeDynetML(nodes, "Name_And_CleanedRole", new File(LinkerMain.dataFile.getParentFile().getCanonicalPath() + "//Linker_" + LinkerMain.dataFile.getName() + ".xml"));
+				String metanetworkName = (String)JOptionPane.showInputDialog(
+	                    this,
+	                    "Give a name to the produced collection of nodes and edges:",
+	                    "Meta-Network Name",
+	                    JOptionPane.PLAIN_MESSAGE,
+	                    null,
+	                    null,
+	                    "LinkerOuput");
+				
+				
+				String[] outputOptions = {"Tab-Delimited Text", "ORA Dynetml"};
+				String outputChoice = (String)JOptionPane.showInputDialog(
+	                    this,
+	                    "Output to Tab-Delimited Text or ORA Dynetml?",
+	                    "Output Options",
+	                    JOptionPane.PLAIN_MESSAGE,
+	                    null,
+	                    outputOptions,
+	                    "ORA Dynetml");
+				
+				if(outputChoice.equals("ORA Dynetml")) {
+					LinkerMain.writeDynetML(nodes, netD.definitions, metanetworkName, new File(LinkerMain.dataFile.getParentFile().getCanonicalPath() + "//" + metanetworkName + ".xml"));
+				}
+				else {
+					File outputDir = new File(LinkerMain.dataFile.getParentFile().getCanonicalPath() + "//" + metanetworkName);
+					outputDir.mkdir();
+					LinkerMain.writeTabDelimitedTextFiles(nodes, netD.definitions, outputDir);
+				}
+				
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

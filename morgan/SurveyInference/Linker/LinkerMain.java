@@ -22,7 +22,7 @@
  * You can also read the license directly at: http://www.gnu.org/licenses/gpl-2.0.html
  *
  * You can contact the authors by e-mailing kgarbach@luc.edu
-*/
+ */
 
 package morgan.SurveyInference.Linker;
 
@@ -64,17 +64,17 @@ public class LinkerMain {
 	static File dataFile;
 	static String lastFileLocation = ".";
 	static String CONJOINER = "+++";
-	
+
 	/**
 	 * All headers found in the data
 	 */
 	static ArrayList<String> headers = new ArrayList<String>();
-	
+
 	/**
 	 * This indicates the data separation in the file, by default tab-delimited
 	 */
 	static String fileDelimiter = "\t";
-	
+
 
 	/**
 	 * Read a data file and then start up the Linker UI
@@ -99,7 +99,7 @@ public class LinkerMain {
 				dataFile = dataFileChooser.getSelectedFile();
 
 				pData = readDataFile(dataFile);
-				new LinkerFrame("Linker: Identifying nodes to establish linkages", nodeDefinitions, headers);
+				new LinkerFrame("Linker: Identifying nodes to establish linkages (" + dataFile.getName() + ")", nodeDefinitions, headers);
 			}
 
 		} catch (Exception e) {
@@ -179,7 +179,7 @@ public class LinkerMain {
 	 */
 	static void identifyUniqueNode(NodeDefinition definition, String uniqueNodeID, HashMap<String, String> participant, ArrayList<IdentifiedNode> collaborators, HashMap<String, IdentifiedNode> uniqueNodes) {
 		uniqueNodeID = uniqueNodeID.replaceAll("&", "+");
-		
+
 		if(!uniqueNodes.containsKey(uniqueNodeID)) {
 			uniqueNodes.put(uniqueNodeID, new IdentifiedNode(uniqueNodeID, definition.getType()));
 		}
@@ -209,8 +209,17 @@ public class LinkerMain {
 	 * @param id, the id of the network file
 	 * @param f, the file to write out
 	 */
-	static void writeDynetML(HashMap<String, IdentifiedNode> nodes, String id, File f) {
+	static void writeDynetML(HashMap<String, IdentifiedNode> nodes, ArrayList<NetworkDefinition> definitions, String id, File f) {
 		try {
+			//NetworkSelectionDialog netD = new NetworkSelectionDialog(null, nodes);
+			//netD.setVisible(true);
+
+			/*
+			System.out.println("Proceeding through network definitions");
+			for(NetworkDefinition net : netD.definitions) {
+				System.out.println("\t" + net.toString());
+			}
+			 */
 			HashMap<String, IdentifiedNode> rejiggeredNodes = new HashMap<String, IdentifiedNode>();
 			for(IdentifiedNode c : nodes.values()) {
 				rejiggeredNodes.put(c.id, c);
@@ -218,7 +227,7 @@ public class LinkerMain {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(f));
 			writeDynetMLHeader(writer, id);
 			writeDynetMLNodes(writer, rejiggeredNodes);
-			writeDynetMLEdges(writer, rejiggeredNodes);
+			writeDynetMLEdges(writer, rejiggeredNodes, definitions);
 			writeDynetMLFooter(writer);
 			writer.flush();
 			writer.close();
@@ -284,39 +293,120 @@ public class LinkerMain {
 	 * @param entities, the entities which have edges to write out to
 	 * @throws Exception, in case writing to the fail fails
 	 */
-	static void writeDynetMLEdges(BufferedWriter writer, HashMap<String, IdentifiedNode> entities) throws Exception {
+	static void writeDynetMLEdges(BufferedWriter writer, HashMap<String, IdentifiedNode> entities, ArrayList<NetworkDefinition> definitions) throws Exception {
 
 		writer.write("\n\t\t<networks>");
 
-		for(String type : NodeDefinition.uniqueTypes) {
-			writer.write("\n\t\t\t<network sourceType=\"" + "Agent" + 
-					"\" source=\"" + "Respondent" + "\" targetType=\"" +
-					"Agent" + "\" target=\"" + type + 
-					"\" id=\"" + "Respondent x " + type + "\" isDirected=\"true\" allowSelfLoops=\"false\" isBinary=\"false\">");
+		for(NetworkDefinition definition : definitions) {
+			if(definition.isOutputted()) {
+				writer.write("\n\t\t\t<network sourceType=\"" + "Agent" + 
+						"\" source=\"" + definition.getSource() + "\" targetType=\"" +
+						"Agent" + "\" target=\"" + definition.getSink() + 
+						"\" id=\"" + definition.getName() + "\" isDirected=\"true\" allowSelfLoops=\"false\" isBinary=\"false\">");
 
-			for(IdentifiedNode c : entities.values()) {
-				
-				for(String targetID : c.ties) {
-					//System.out.println("Entities not listed:");
-					if(entities.containsKey(targetID)) {
-						IdentifiedNode target = entities.get(targetID);
-						if(target.type.equals(type)) {
-							writer.write("\n\t\t\t\t<link source=\"" + c.id + "\" target=\"" + 
-									targetID + "\" value=\"" + "1" + "\"/>");
+
+				for(IdentifiedNode c : entities.values()) {
+					if(c.type.equals(definition.getSource())) {
+						for(String targetID : c.ties) {
+							//System.out.println("Entities not listed:");
+							if(entities.containsKey(targetID)) {
+								IdentifiedNode target = entities.get(targetID);
+								if(target.type.equals(definition.getSink())) {
+									writer.write("\n\t\t\t\t<link source=\"" + c.id + "\" target=\"" + 
+											targetID + "\" value=\"" + "1" + "\"/>");
+								}
+							}
+							else {
+								System.out.println("Missing entity:\t" + targetID);
+
+							}
+
 						}
 					}
-					else {
-						System.out.println("Missing entity:\t" + targetID);
-						
-					}
-					
-				}	
-			}
+				}
 
-			writer.write("\n\t\t\t</network>");
+				writer.write("\n\t\t\t</network>");
+			}
 		}
 		writer.write("\n\t\t</networks>");
 
+	}
+
+	static void writeTabDelimitedTextFiles(HashMap<String, IdentifiedNode> nodes, ArrayList<NetworkDefinition> definitions, File parentDir) {
+		for(NodeDefinition definition : nodeDefinitions) {
+			try {
+				writeNodeListToTabDelimitedTextFile(parentDir, nodes, definition);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		for(NetworkDefinition d : definitions) {
+			if(d.isOutputted()) {
+				try {
+					writeEdgeListToTabDelimitedTextFile(parentDir, nodes, d);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	static void writeEdgeListToTabDelimitedTextFile(File parentDir, HashMap<String, IdentifiedNode> nodes, NetworkDefinition networkDefinition) throws Exception {
+		BufferedWriter writer = new BufferedWriter(new FileWriter(parentDir.getPath() + "//" + networkDefinition.getName() + ".txt"));
+		writer.write("Source\tSink\tWeight");
+		writer.newLine();
+
+		for(IdentifiedNode sourceNode : nodes.values()) {
+			if(sourceNode.type.equals(networkDefinition.getSource())) {
+				for(String tie : sourceNode.ties) {
+					IdentifiedNode sinkNode = nodes.get(tie);
+					if(sinkNode != null && sinkNode.type.equals(networkDefinition.getSink())) {
+						writer.write(sourceNode.id + "\t" + sinkNode.id + "\t1");
+						writer.newLine();
+					}
+				}
+			}
+		}
+
+		writer.flush();
+		writer.close();
+	}
+
+	static void writeNodeListToTabDelimitedTextFile(File parentDir, HashMap<String, IdentifiedNode> nodes, NodeDefinition nDefinition) throws Exception {
+		BufferedWriter writer = new BufferedWriter(new FileWriter(parentDir.getPath() + "//" + nDefinition.getType() + ".txt"));
+		//boolean firstCorrectEntityFound = false;
+
+		// Write Header
+		String header = "ID\tType\t";
+		for(String identCharacteristic : nDefinition.identifyingCharacteristics) {
+			header += IdentifiedNode.simplifyKey(identCharacteristic) + "\t";
+		}
+		for(String dataCharacteristic : nDefinition.otherCharacteristics) {
+			header += IdentifiedNode.simplifyKey(dataCharacteristic) + "\t";
+		}
+		header = header.trim();
+		writer.write(header);
+		writer.newLine();
+
+		for(IdentifiedNode n : nodes.values()) {
+			if(n.type.equals(nDefinition.getType())) {
+				String data = n.id + "\t" + n.type + "\t";
+				for(String identCharacteristic : nDefinition.identifyingCharacteristics) {
+					data += n.characteristics.get(IdentifiedNode.simplifyKey(identCharacteristic)) + "\t";
+				}
+				for(String dataCharacteristic : nDefinition.otherCharacteristics) {
+					data += n.characteristics.get(IdentifiedNode.simplifyKey(dataCharacteristic)) + "\t";
+				}
+				data = data.trim();
+				writer.write(data);
+				writer.newLine();
+			}
+		}
+
+		writer.flush();
+		writer.close();
 	}
 
 
@@ -327,7 +417,7 @@ public class LinkerMain {
 	static void setupNodeDefinitions() {
 		//TODO consider adding load of a default set of definitions
 	}
-	
+
 	/**
 	 * Reads in a given data file and generates a collection of hashmaps, each hashmap represents
 	 * a participant.

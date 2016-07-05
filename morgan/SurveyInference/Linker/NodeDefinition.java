@@ -278,5 +278,6 @@ public class NodeDefinition {
 	String getType() {
 		return this.type;
 	}
+	
 
 }
