@@ -26,17 +26,21 @@
 
 package morgan.SurveyInference.Linker;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 
 import javax.swing.JFileChooser;
+import javax.swing.ProgressMonitorInputStream;
 
 /**
  * This script initializes the Linker.  It reads the initial configuration and data file
@@ -432,12 +436,22 @@ public class LinkerMain {
 	static ArrayList<HashMap<String, String>> readDataFile(File dataFile) throws Exception {
 		ArrayList<HashMap<String, String>> participantData = new ArrayList<HashMap<String, String>>();
 
-		BufferedReader reader = new BufferedReader(new FileReader(dataFile));
+		
+		//BufferedReader reader = new BufferedReader(new FileReader(dataFile));
+		BufferedInputStream iStream = new BufferedInputStream(new ProgressMonitorInputStream(
+                null,
+                "Reading " + dataFile.getName(),
+                new FileInputStream(dataFile)));
+		BufferedReader reader = new BufferedReader(new InputStreamReader(iStream));
 		String headerLine = reader.readLine();
 		String[] headerElements = headerLine.split(fileDelimiter);
 		Collections.addAll(headers, headerElements);
-
+		
+		//int readCount = 0;
+		
+		
 		while(reader.ready()) {
+			//++readCount;
 			HashMap<String, String> participant = new HashMap<String, String>();
 			String dataLine = reader.readLine();
 			String[] dataElements = dataLine.split(fileDelimiter);
