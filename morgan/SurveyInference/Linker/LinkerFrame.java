@@ -202,10 +202,10 @@ public class LinkerFrame extends JFrame implements ActionListener {
 	                    outputOptions,
 	                    "ORA Dynetml");
 				
-				if(outputChoice.equals("ORA Dynetml")) {
+				if(outputChoice != null && outputChoice.equals("ORA Dynetml")) {
 					LinkerMain.writeDynetML(nodes, netD.definitions, metanetworkName, new File(LinkerMain.dataFile.getParentFile().getCanonicalPath() + "//" + metanetworkName + ".xml"));
 				}
-				else {
+				else if (outputChoice != null) {
 					File outputDir = new File(LinkerMain.dataFile.getParentFile().getCanonicalPath() + "//" + metanetworkName);
 					outputDir.mkdir();
 					LinkerMain.writeTabDelimitedTextFiles(nodes, netD.definitions, outputDir);
