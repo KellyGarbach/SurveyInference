@@ -129,6 +129,7 @@ public class NetworkDefinition implements ActionListener, KeyListener {
 		if(e.getSource().equals(outputCheckBox)) {
 			isOutputted = !isOutputted;
 			outputCheckBox.setSelected(isOutputted);
+			textLabel.setEnabled(isOutputted);
 		}
 		if(e.getSource().equals(transposeCheckBox)) {
 			isTranspose = !isTranspose;
