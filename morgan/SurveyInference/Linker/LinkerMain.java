@@ -40,6 +40,7 @@ import java.util.Collections;
 import java.util.HashMap;
 
 import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import javax.swing.ProgressMonitorInputStream;
 
 /**
@@ -79,7 +80,10 @@ public class LinkerMain {
 	 */
 	static String fileDelimiter = "\t";
 
-
+	/**
+	 * This GUI reference object lets us reach the GUI later when convenient
+	 */
+	static LinkerFrame GUI;
 	/**
 	 * Read a data file and then start up the Linker UI
 	 * @param args
@@ -103,7 +107,7 @@ public class LinkerMain {
 				dataFile = dataFileChooser.getSelectedFile();
 
 				pData = readDataFile(dataFile);
-				new LinkerFrame("Linker: Identifying nodes to establish linkages (" + dataFile.getName() + ")", nodeDefinitions, headers);
+				GUI = new LinkerFrame("Linker: Identifying nodes to establish linkages (" + dataFile.getName() + ")", nodeDefinitions, headers);
 			}
 
 		} catch (Exception e) {
@@ -215,15 +219,7 @@ public class LinkerMain {
 	 */
 	static void writeDynetML(HashMap<String, IdentifiedNode> nodes, ArrayList<NetworkDefinition> definitions, String id, File f) {
 		try {
-			//NetworkSelectionDialog netD = new NetworkSelectionDialog(null, nodes);
-			//netD.setVisible(true);
 
-			/*
-			System.out.println("Proceeding through network definitions");
-			for(NetworkDefinition net : netD.definitions) {
-				System.out.println("\t" + net.toString());
-			}
-			 */
 			HashMap<String, IdentifiedNode> rejiggeredNodes = new HashMap<String, IdentifiedNode>();
 			for(IdentifiedNode c : nodes.values()) {
 				rejiggeredNodes.put(c.id, c);
@@ -235,6 +231,8 @@ public class LinkerMain {
 			writeDynetMLFooter(writer);
 			writer.flush();
 			writer.close();
+			
+			JOptionPane.showMessageDialog(GUI, f.getAbsolutePath() + " successfully written to file.");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -355,6 +353,7 @@ public class LinkerMain {
 				}
 			}
 		}
+		JOptionPane.showMessageDialog(GUI, "TXT files written to: " + parentDir.getAbsolutePath());
 	}
 
 	static void writeEdgeListToTabDelimitedTextFile(File parentDir, HashMap<String, IdentifiedNode> nodes, NetworkDefinition networkDefinition) throws Exception {
