@@ -268,6 +268,14 @@ public class NodeDefinition {
 		return tempCollabs;
 	}
 	
+	/**
+	 * This updates the current type of the NodeDefinition, and adds the 
+	 * new type to the current uniqueTypes list if it isn't already there.
+	 * 
+	 * This fixes some problematic update behaviors.
+	 * 
+	 * @param newType, the new type of the node
+	 */
 	void setType(String newType) {
 		this.type = newType;
 		if(!uniqueTypes.contains(newType)) {
@@ -275,6 +283,11 @@ public class NodeDefinition {
 		}
 	}
 	
+	/**
+	 * Returns the node's type
+	 * 
+	 * @return the current node-type
+	 */
 	String getType() {
 		return this.type;
 	}

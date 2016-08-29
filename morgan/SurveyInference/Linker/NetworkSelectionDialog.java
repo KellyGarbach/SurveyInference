@@ -5,11 +5,10 @@ import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.Box;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 
 /**
@@ -25,10 +24,24 @@ public class NetworkSelectionDialog extends Dialog implements ActionListener {
 	 */
 	private static final long serialVersionUID = -6903478326927861334L;
 	
+	/**
+	 * A button used to indicate acceptance
+	 */
 	JButton submit;
+	/**
+	 * Networks that should be outputted to the screen
+	 */
 	ArrayList<NetworkDefinition> definitions = new ArrayList<NetworkDefinition>();
 
-	public NetworkSelectionDialog(Frame arg0, HashMap<String, IdentifiedNode> nodes) {
+	/**
+	 * Initializes the NetworkSelectionDialog, placing it relative to the source frame.
+	 * This is a modal dialog, so the user cannot further interact with the Linker until
+	 * closing or accepting this dialog.
+	 * 
+	 * @param arg0, the Linker frame it is relative to
+	 * @param nodes, what nodes have been extraced from the data
+	 */
+	public NetworkSelectionDialog(Frame arg0, Map<String, IdentifiedNode> nodes) {
 		super(arg0);
 		this.setModal(true);
 		this.setTitle("Select Networks to Output");
@@ -67,6 +80,9 @@ public class NetworkSelectionDialog extends Dialog implements ActionListener {
 		this.pack();
 	}
 
+	/**
+	 * This hides the dialog box, causing execution to proceed
+	 */
 	public void actionPerformed(ActionEvent e) {
 		this.setVisible(false);
 	}
