@@ -112,8 +112,17 @@ public class AnonymizerMain {
 	/**
 	 * All names so far found, used in Minimum Edit Distance
 	 */
-	static HashSet<String> uniqueNames = new HashSet<String>();
-
+	//static HashSet<String> uniqueNames = new HashSet<String>();
+	
+	/**
+	 * All names and roles ever found
+	 */
+	static ArrayList<CandidateIdentifier> candidateNames  = new ArrayList<CandidateIdentifier>();
+	static ArrayList<CandidateIdentifier> candidateRoles = new ArrayList<CandidateIdentifier>();
+	static HashMap<String, CandidateIdentifier> candidateNameMap = new HashMap<String, CandidateIdentifier>();
+	static HashMap<String, CandidateIdentifier> candidateRoleMap = new HashMap<String, CandidateIdentifier>();
+	
+	
 	/**
 	 * All roles so far found, used in Minimum Edit Distance
 	 */
@@ -226,6 +235,8 @@ public class AnonymizerMain {
 				// 4. Create "cleaned roles" based on variable Levenshtein distance for:
 				//    Quest14a_Role, Quest14b_Role, Quest14c_Role, Quest14d_Role, Quest14e_Role,
 				Thread.sleep(1000);
+				CandidateIdentifier.cleanCandidateIDs(candidateNames);
+				CandidateIdentifier.cleanCandidateIDs(candidateRoles);
 				cleanParticipants(pData);
 				if(anonymize) {
 					// 5. Create "anonymous names"
@@ -440,6 +451,20 @@ public class AnonymizerMain {
 								}
 								participant.put(iPartner + partnerNameSuffix, pName);
 								participant.put(iPartner + partnerRoleSuffix, pRole);
+								
+								CandidateIdentifier cIDName = new CandidateIdentifier(pName);
+								CandidateIdentifier cIDRole = new CandidateIdentifier(pRole);
+								
+								if(!candidateNameMap.containsKey(pName)) {
+									candidateNameMap.put(pName, cIDName);
+									candidateNames.add(cIDName);
+								}
+								
+								if(!candidateRoleMap.containsKey(pRole)) {
+									candidateRoleMap.put(pRole, cIDRole);
+									candidateRoles.add(cIDRole);
+								}
+								
 							}
 							else {
 								if(partnerData.length() <= 3) {
@@ -447,6 +472,14 @@ public class AnonymizerMain {
 								}
 								participant.put(iPartner + partnerNameSuffix, unknownActor);
 								participant.put(iPartner + partnerRoleSuffix, partnerData);
+								
+								
+								CandidateIdentifier cIDRole = new CandidateIdentifier(partnerData);
+								
+								if(!candidateRoleMap.containsKey(partnerData)) {
+									candidateRoleMap.put(partnerData, cIDRole);
+									candidateRoles.add(cIDRole);
+								}
 							}
 						}
 						else {
@@ -455,6 +488,13 @@ public class AnonymizerMain {
 								partnerData = partnerData.toUpperCase();
 							}
 							participant.put(iPartner + partnerNameSuffix, partnerData);
+							
+							CandidateIdentifier cIDName = new CandidateIdentifier(partnerData);
+							
+							if(!candidateNameMap.containsKey(partnerData)) {
+								candidateNameMap.put(partnerData, cIDName);
+								candidateNames.add(cIDName);
+							}
 							//participant.put(iPartner + partnerRoleSuffix, implicitRole);
 						}
 					} catch (Exception e) {
@@ -469,6 +509,14 @@ public class AnonymizerMain {
 		}
 		for(String n : columnsIndicatingRespondent) {
 			participant.put(n + "_Role", implicitRole);
+			String nameData = participant.get(n).trim();
+			CandidateIdentifier cIDName = new CandidateIdentifier(nameData);
+			
+			if(!candidateNameMap.containsKey(nameData)) {
+				candidateNameMap.put(nameData, cIDName);
+				candidateNames.add(cIDName);
+			}
+			
 		}
 	}
 
@@ -487,6 +535,8 @@ public class AnonymizerMain {
 			cleanParticipant(participant);
 		}
 	}
+	
+	static void 
 
 	/**
 	 * Helper function per participant to clean each participant, we check against
@@ -695,93 +745,6 @@ public class AnonymizerMain {
 		writer.close();
 	}
 
-	/**
-	 * Of all names already seen in the data-set, examine them and, if any are close enough,
-	 * identify this name as the same as the other name.
-	 * 
-	 * This uses the Levenshtein, also known as Minimum Edit, Distance to compare the strings
-	 * 
-	 * The first-found most similar name is returned.
-	 * 
-	 * @param maxDistance - the amount of difference between names that are actually the same name
-	 * @param target - the string to be checked against prior-found names
-	 * @return the closest string, if any based on the max-distance, null if no suitable string is found.
-	 */
-	static String getClosestName(int maxDistance, String target, HashSet<String> uniqueSet) {
-		String currentBest = null;
-		int currentLowestDistance = maxDistance + 1;
 
-		for(String currentName : uniqueSet) {
-			int distance = LevenshteinDistance(target, currentName);
-			if(distance < currentLowestDistance) {
-				currentBest = currentName;
-				currentLowestDistance = distance;
-			}
-		}
-
-		if(currentBest == null) {
-			//System.out.println("Adding " + target + " to the name-list.");
-			if(!uniqueSet.contains(target)) {
-				uniqueSet.add(target);
-			}
-			return target;
-		}
-
-		return currentBest;
-	}
-
-	/**
-	 * This implementation is taken entirely from 
-	 * http://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distance
-	 * 
-	 * Note, we can edit the insert, delete, and modify distances to suit our needs
-	 * 
-	 * Accessed July 7th, 2014
-	 * 
-	 * @param s0 - string to compare, e.g. "kitten"
-	 * @param s1 - other string to compare, e.g., "sitting"
-	 * @return the Levenshtein Distance, or Minimum Edit Distance, which would be 3 between "kitten" and "sitting"
-	 */
-	static public int LevenshteinDistance (String s0, String s1) {
-		int len0 = s0.length()+1;
-		int len1 = s1.length()+1;
-
-		// the array of distances
-		int[] cost = new int[len0];
-		int[] newcost = new int[len0];
-
-		// initial cost of skipping prefix in String s0
-		for(int i=0;i<len0;i++) cost[i]=i;
-
-		// dynamically computing the array of distances
-
-		// transformation cost for each letter in s1
-		for(int j=1;j<len1;j++) {
-
-			// initial cost of skipping prefix in String s1
-			newcost[0]=j-1;
-
-			// transformation cost for each letter in s0
-			for(int i=1;i<len0;i++) {
-
-				// matching current letters in both strings
-				int match = (s0.charAt(i-1)==s1.charAt(j-1))?0:1;
-
-				// computing cost for each transformation
-				int cost_replace = cost[i-1]+match;
-				int cost_insert  = cost[i]+1;
-				int cost_delete  = newcost[i-1]+1;
-
-				// keep minimum cost
-				newcost[i] = Math.min(Math.min(cost_insert, cost_delete),cost_replace );
-			}
-
-			// swap cost/newcost arrays
-			int[] swap=cost; cost=newcost; newcost=swap;
-		}
-
-		// the distance is the cost for transforming all letters in both strings
-		return cost[len0-1];
-	}
 
 }
