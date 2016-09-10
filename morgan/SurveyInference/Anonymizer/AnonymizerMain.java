@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFileChooser;
@@ -112,7 +113,7 @@ public class AnonymizerMain {
 	/**
 	 * All names so far found, used in Minimum Edit Distance
 	 */
-	//static HashSet<String> uniqueNames = new HashSet<String>();
+	static HashSet<String> uniqueNames = new HashSet<String>();
 	
 	/**
 	 * All names and roles ever found
@@ -235,8 +236,6 @@ public class AnonymizerMain {
 				// 4. Create "cleaned roles" based on variable Levenshtein distance for:
 				//    Quest14a_Role, Quest14b_Role, Quest14c_Role, Quest14d_Role, Quest14e_Role,
 				Thread.sleep(1000);
-				CandidateIdentifier.cleanCandidateIDs(candidateNames);
-				CandidateIdentifier.cleanCandidateIDs(candidateRoles);
 				cleanParticipants(pData);
 				if(anonymize) {
 					// 5. Create "anonymous names"
@@ -244,7 +243,11 @@ public class AnonymizerMain {
 					anonymizeParticipants(pData);
 				}
 				// 6. Output new file
-				File fileToWrite = new File(dataFile.getParentFile().getCanonicalPath() + "//Cleaned_" + dataFile.getName());
+				String fileString = "//Anonymized_" + dataFile.getName();
+				if(!anonymize) {
+					fileString = "//Cleaned_" + dataFile.getName();
+				}
+				File fileToWrite = new File(dataFile.getParentFile().getCanonicalPath() + fileString);
 				writeDataFile(fileToWrite, pData);
 				Thread.sleep(1000);
 				progress.setString("Process Complete!");
@@ -530,13 +533,15 @@ public class AnonymizerMain {
 		int counter = 0;
 		progress.setString("Cleaning...");
 		textField.setText(textField.getText() + "\nCleaning...");
+		uniqueNames = CandidateIdentifier.cleanCandidateIDs(candidateNames, uniqueNames);
+		uniqueRoles = CandidateIdentifier.cleanCandidateIDs(candidateRoles, uniqueRoles);
 		for(HashMap<String, String> participant : pData) {
 			progress.setValue(++counter);
 			cleanParticipant(participant);
 		}
 	}
 	
-	static void 
+	
 
 	/**
 	 * Helper function per participant to clean each participant, we check against
@@ -548,12 +553,12 @@ public class AnonymizerMain {
 		for(String iPartner : columnsToAnonymize) {
 			String iPartnerName = iPartner + partnerNameSuffix;
 			String iPartnerRole = iPartner + partnerRoleSuffix;
-			cleanParticipantInfo(participant, iPartnerName, uniqueNames);
-			cleanParticipantInfo(participant, iPartnerRole, uniqueRoles);
+			cleanParticipantInfo(participant, iPartnerName, candidateNameMap);
+			cleanParticipantInfo(participant, iPartnerRole, candidateRoleMap);
 		}
 		for(String respondent : columnsIndicatingRespondent) {
-			cleanParticipantInfo(participant, respondent, uniqueNames);
-			cleanParticipantInfo(participant, respondent + partnerRoleSuffix, uniqueRoles);
+			cleanParticipantInfo(participant, respondent, candidateNameMap);
+			cleanParticipantInfo(participant, respondent + partnerRoleSuffix, candidateRoleMap);
 		}
 	}
 
@@ -565,31 +570,15 @@ public class AnonymizerMain {
 	 * @param key - the key to data that should be checked
 	 * @param uniqueSet - unique values that should be compared against
 	 */
-	static void cleanParticipantInfo(HashMap<String, String> participant, String key, HashSet<String> uniqueSet) {
+	static void cleanParticipantInfo(HashMap<String, String> participant, String key, Map<String, CandidateIdentifier> candidateMap) {
 		if(participant.containsKey(key)) {
 			String info = participant.get(key);
 			String cleanedInfo = info;
-			if(!info.equals(unknownActor)) {
-				// Ignore the unknown actors
-				int infoLength = info.length();
-				int closestThreshold;
-				if(cleaningThresholds == null) {
-					closestThreshold = 0;
-				}
-				else {
-					closestThreshold = cleaningThresholds.length;
-					for(int i = 0; i < cleaningThresholds.length; ++i) {
-						if(cleaningThresholds[i] >= infoLength) {
-							closestThreshold = i;
-							break;
-						}
-					}
-				}
-				System.out.println("Cleaning Check : " + info + " - " + closestThreshold);
-
-				cleanedInfo = getClosestName(closestThreshold, info, uniqueSet);
-
+			System.out.println("Searching for " + info + " in map with " + candidateMap.size() + " entries.");
+			if(candidateMap.containsKey(info)) {
+				cleanedInfo = candidateMap.get(info).cleanedID;
 			}
+			System.out.println("Cleaning: " + info + " - " + cleanedInfo);			
 			textField.setText(textField.getText() + "\n\t" + key + " - " + info + ":" + cleanedInfo);
 			participant.put(key + cleanExtension, cleanedInfo);
 		}
@@ -609,9 +598,12 @@ public class AnonymizerMain {
 		HashMap<String, String> anonymousNames = new HashMap<String,String>();
 		int nameCounter = 0;
 		for(String name : uniqueNames) {
-			String anonName = "Name" + ++nameCounter;
-			textField.setText(textField.getText() + "\n\t" + name + ":" + anonName);
-			anonymousNames.put(name, anonName);
+			// Skip the Unknown Actor
+			if(!name.equals(AnonymizerMain.unknownActor)) {
+				String anonName = "Name" + ++nameCounter;
+				textField.setText(textField.getText() + "\n\t" + name + ":" + anonName);
+				anonymousNames.put(name, anonName);
+			}
 		}
 
 		for(HashMap<String, String> participant : pData) {

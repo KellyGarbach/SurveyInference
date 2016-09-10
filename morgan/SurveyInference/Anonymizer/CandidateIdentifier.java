@@ -9,48 +9,65 @@ public class CandidateIdentifier implements Comparable<CandidateIdentifier> {
 	String id;
 	String cleanedID;
 	String anonID;
-	
+
 	CandidateIdentifier(String theName) {
 		id = theName;
 		cleanedID = null;
 		anonID = null;
 	}
-	
+
 	public int compareTo(CandidateIdentifier o) {
 		Integer thisLength = this.id.length();
 		Integer oLength = o.id.length();
-		
+
 		return thisLength.compareTo(oLength);
 	}
 	
-	static void cleanCandidateIDs(List<CandidateIdentifier> theRawIDs) {
+	static HashSet<String> cleanCandidateIDs(List<CandidateIdentifier> theRawIDs, HashSet<String> uniqueIDs) {
 		// The shortest elements are now first
 		Collections.sort(theRawIDs);
+		// For each candidate
+		// Identify their threshold and the candidate's threshold
+		// Calculate the LevenshteinDistance
+		// Check that both unique identifiers would be willing to replace each other based
+		// on current config
 		for(CandidateIdentifier candidate : theRawIDs) {
 			int threshold = CandidateIdentifier.getDistanceThreshold(candidate.id);
 			int maxDistance = threshold + 1;
 			CandidateIdentifier bestCandidate = null;
-			for(CandidateIdentifier alter : theRawIDs) {
-				if(!candidate.equals(alter)) {
-					// Don't match to myself
-					int distance = LevenshteinDistance(candidate.id, alter.id);
-					if(distance < maxDistance) {
-						bestCandidate = alter;
-						maxDistance = distance;
+			// Skip the cleaning process if you're unknown
+			if(!candidate.equals(AnonymizerMain.unknownActor)) {
+				for(CandidateIdentifier alter : theRawIDs) {
+					// Don't match to myself or to unknown actors
+					if(!candidate.equals(alter) && !candidate.id.equals(AnonymizerMain.unknownActor)) {
+						
+						int alterThreshold = CandidateIdentifier.getDistanceThreshold(alter.id) + 1;
+						int distance = LevenshteinDistance(candidate.id, alter.id);
+						// Check for symmetry (Jan should replace Jane only if Jane and Jan would both match)
+						if(distance < maxDistance && distance < alterThreshold) {				
+							bestCandidate = alter;
+							maxDistance = distance;
+							System.out.println("Original: " + candidate.id + " Best Candidate:" + bestCandidate.id + ", Distance: " + distance);
+						}
 					}
 				}
 			}
-			
+
 			if(bestCandidate != null) {
 				candidate.cleanedID = bestCandidate.id;
 			}
 			else {
 				candidate.cleanedID = candidate.id;
 			}
+			
+			if(!uniqueIDs.contains(candidate.cleanedID)) {
+				uniqueIDs.add(candidate.cleanedID);
+			}
 		}
-		
+
+		return uniqueIDs;
 	}
-	
+
 	static int getDistanceThreshold(String info) {
 		int infoLength = info.length();
 		int closestThreshold;
@@ -66,10 +83,10 @@ public class CandidateIdentifier implements Comparable<CandidateIdentifier> {
 				}
 			}
 		}
-		
+
 		return closestThreshold;
 	}
-	
+
 	/**
 	 * Of all names already seen in the data-set, examine them and, if any are close enough,
 	 * identify this name as the same as the other name.
@@ -158,7 +175,7 @@ public class CandidateIdentifier implements Comparable<CandidateIdentifier> {
 		// the distance is the cost for transforming all letters in both strings
 		return cost[len0-1];
 	}
-	
-	
-	
+
+
+
 }
