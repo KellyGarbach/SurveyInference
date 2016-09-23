@@ -24,6 +24,7 @@
 package morgan.SurveyInference.Anonymizer;
 
 import java.awt.Dimension;
+import java.awt.GridLayout;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -31,6 +32,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,10 +41,12 @@ import java.util.Map;
 import javax.swing.BoxLayout;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 
 import morgan.SurveyInference.Linker.TXTFileFilter;
@@ -208,9 +212,11 @@ public class AnonymizerMain {
 			File dataFile = dataFileChooser.getSelectedFile();
 			try {
 				JFrame progressFrame = new JFrame();
+				JTabbedPane tabbedPane = new JTabbedPane();
 				JPanel content = new JPanel();
+				tabbedPane.addTab("Main Log", content);
 				content.setLayout(new BoxLayout(content, BoxLayout.PAGE_AXIS));
-				progressFrame.setContentPane(content);
+				progressFrame.setContentPane(tabbedPane);
 				progressFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 				progressFrame.setTitle("Anonymizer!");
 				progressFrame.setPreferredSize(new Dimension(600,400));
@@ -237,6 +243,11 @@ public class AnonymizerMain {
 				//    Quest14a_Role, Quest14b_Role, Quest14c_Role, Quest14d_Role, Quest14e_Role,
 				Thread.sleep(1000);
 				cleanParticipants(pData);
+				
+				// Add review tabs
+				tabbedPane.addTab("Review Names", prepareReviewPanel(candidateNameMap.values()));
+				tabbedPane.addTab("Review Roles", prepareReviewPanel(candidateRoleMap.values()));
+				
 				if(anonymize) {
 					// 5. Create "anonymous names"
 					Thread.sleep(1000);
@@ -262,6 +273,24 @@ public class AnonymizerMain {
 
 		}
 
+	}
+	
+	static JPanel prepareReviewPanel(Collection<CandidateIdentifier> candidateIDs) {
+		JPanel holderPanel = new JPanel();
+		JPanel reviewPanel = new JPanel();
+		JScrollPane scrollPanel = new JScrollPane(reviewPanel);
+		//scrollPanel.setPreferredSize(new Dimension(600, 350));
+		holderPanel.add(scrollPanel);
+		GridLayout reviewLayout = new GridLayout(0, 2);
+		reviewPanel.setLayout(reviewLayout);
+		reviewPanel.add(new JLabel("Original"));
+		reviewPanel.add(new JLabel("Cleaned"));
+		
+		for(CandidateIdentifier id : candidateIDs) {
+			id.addVisualElementsToPanel(reviewPanel);
+		}
+		
+		return holderPanel;
 	}
 
 	/**

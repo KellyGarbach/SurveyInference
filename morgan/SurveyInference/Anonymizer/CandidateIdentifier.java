@@ -4,6 +4,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+
 public class CandidateIdentifier implements Comparable<CandidateIdentifier> {
 
 	String id;
@@ -176,6 +179,17 @@ public class CandidateIdentifier implements Comparable<CandidateIdentifier> {
 		return cost[len0-1];
 	}
 
-
+	void addVisualElementsToPanel(JPanel component) {
+		if(!id.equals(cleanedID)) {
+			JTextField idField, cleanedField;
+			idField = new JTextField(id);
+			idField.setEditable(false);
+			component.add(idField);
+		
+			cleanedField = new JTextField(cleanedID);
+			cleanedField.setEditable(false);
+			component.add(cleanedField);
+		}
+	}
 
 }
