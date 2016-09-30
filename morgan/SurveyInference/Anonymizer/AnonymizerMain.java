@@ -23,8 +23,11 @@
 
 package morgan.SurveyInference.Anonymizer;
 
+import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -39,6 +42,7 @@ import java.util.HashSet;
 import java.util.Map;
 
 import javax.swing.BoxLayout;
+import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -57,8 +61,10 @@ import morgan.SurveyInference.Linker.TXTFileFilter;
  * @author gmorgan, kgarbach
  *
  */
-public class AnonymizerMain {
+public class AnonymizerMain implements ActionListener {
 
+	static AnonymizerMain theMain = new AnonymizerMain();
+	
 	/**
 	 * This is the list of the questions that indicate interaction partners.
 	 */
@@ -127,6 +133,16 @@ public class AnonymizerMain {
 	static HashMap<String, CandidateIdentifier> candidateNameMap = new HashMap<String, CandidateIdentifier>();
 	static HashMap<String, CandidateIdentifier> candidateRoleMap = new HashMap<String, CandidateIdentifier>();
 	
+	/**
+	 * Checkboxes for review panels
+	 */
+	static JCheckBox showAllNames = new JCheckBox("Show only changed names");
+	static JCheckBox showAllRoles = new JCheckBox("Show only changed roles");
+	
+	/**
+	 * Holder Panels
+	 */
+	static JPanel nameReviewPanel, roleReviewPanel;
 	
 	/**
 	 * All roles so far found, used in Minimum Edit Distance
@@ -245,8 +261,10 @@ public class AnonymizerMain {
 				cleanParticipants(pData);
 				
 				// Add review tabs
-				tabbedPane.addTab("Review Names", prepareReviewPanel(candidateNameMap.values()));
-				tabbedPane.addTab("Review Roles", prepareReviewPanel(candidateRoleMap.values()));
+				nameReviewPanel = prepareReviewPanel(candidateNameMap.values(), showAllNames);
+				roleReviewPanel = prepareReviewPanel(candidateRoleMap.values(), showAllRoles);
+				tabbedPane.addTab("Review Names", nameReviewPanel);
+				tabbedPane.addTab("Review Roles", roleReviewPanel);
 				
 				if(anonymize) {
 					// 5. Create "anonymous names"
@@ -275,22 +293,54 @@ public class AnonymizerMain {
 
 	}
 	
-	static JPanel prepareReviewPanel(Collection<CandidateIdentifier> candidateIDs) {
+	static JPanel prepareReviewPanel(Collection<CandidateIdentifier> candidateIDs, JCheckBox checkBox) {
+		
 		JPanel holderPanel = new JPanel();
+		holderPanel.setLayout(new BorderLayout());
 		JPanel reviewPanel = new JPanel();
 		JScrollPane scrollPanel = new JScrollPane(reviewPanel);
-		//scrollPanel.setPreferredSize(new Dimension(600, 350));
-		holderPanel.add(scrollPanel);
+		scrollPanel.setPreferredSize(new Dimension(400, 350));
+		holderPanel.add(scrollPanel, BorderLayout.CENTER);
 		GridLayout reviewLayout = new GridLayout(0, 2);
 		reviewPanel.setLayout(reviewLayout);
 		reviewPanel.add(new JLabel("Original"));
 		reviewPanel.add(new JLabel("Cleaned"));
 		
-		for(CandidateIdentifier id : candidateIDs) {
-			id.addVisualElementsToPanel(reviewPanel);
+		checkBox.setSelected(false);
+		checkBox.addActionListener(theMain);
+		holderPanel.add(checkBox, BorderLayout.NORTH);
+		
+		ArrayList<CandidateIdentifier> theIDs = new ArrayList<CandidateIdentifier>();
+		theIDs.addAll(candidateIDs);
+		Collections.sort(theIDs);
+		
+		for(CandidateIdentifier id : theIDs) {
+			id.addVisualElementsToPanel(!checkBox.isSelected(), reviewPanel);
 		}
 		
 		return holderPanel;
+	}
+	
+	static void updateReviewPanel(JPanel review, Collection<CandidateIdentifier> candidateIDs, JCheckBox checkBox) {
+		review.removeAll();
+		review.add(checkBox, BorderLayout.NORTH);
+		
+		JPanel reviewPanel = new JPanel();
+		JScrollPane scrollPanel = new JScrollPane(reviewPanel);
+		scrollPanel.setPreferredSize(new Dimension(400, 350));
+		review.add(scrollPanel, BorderLayout.CENTER);
+		GridLayout reviewLayout = new GridLayout(0, 2);
+		reviewPanel.setLayout(reviewLayout);
+		reviewPanel.add(new JLabel("Original"));
+		reviewPanel.add(new JLabel("Cleaned"));
+		
+		ArrayList<CandidateIdentifier> theIDs = new ArrayList<CandidateIdentifier>();
+		theIDs.addAll(candidateIDs);
+		Collections.sort(theIDs);
+		
+		for(CandidateIdentifier id : theIDs) {
+			id.addVisualElementsToPanel(!checkBox.isSelected(), reviewPanel);
+		}
 	}
 
 	/**
@@ -329,7 +379,7 @@ public class AnonymizerMain {
 					JOptionPane.showMessageDialog(null,  "Boolean value for configuration flag " + flag + " expected, but not found. " + dataMap.get(flag) + " was found.  Please replace with true/false.", "Configuration File Error: " + configFile.getName(), JOptionPane.ERROR_MESSAGE);
 				}
 			}
-			if(flag.equalsIgnoreCase("columnsToAnonymize")) {
+			else if(flag.equalsIgnoreCase("columnsToAnonymize")) {
 				columnsToAnonymize = dataMap.get(flag).split(",");
 			}
 			else if(flag.equalsIgnoreCase("columnsIndicatingRespondent")) {
@@ -764,6 +814,16 @@ public class AnonymizerMain {
 		}
 		writer.flush();
 		writer.close();
+	}
+
+	public void actionPerformed(ActionEvent e) {
+		// TODO Auto-generated method stub
+		if(e.getSource().equals(showAllNames)) {
+			updateReviewPanel(nameReviewPanel, candidateNameMap.values(), showAllNames);
+		}
+		else if(e.getSource().equals(showAllRoles)) {
+			updateReviewPanel(roleReviewPanel, candidateRoleMap.values(), showAllRoles);
+		}
 	}
 
 

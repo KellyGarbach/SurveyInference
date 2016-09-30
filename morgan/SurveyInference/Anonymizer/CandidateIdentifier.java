@@ -1,5 +1,6 @@
 package morgan.SurveyInference.Anonymizer;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -34,33 +35,33 @@ public class CandidateIdentifier implements Comparable<CandidateIdentifier> {
 		// Calculate the LevenshteinDistance
 		// Check that both unique identifiers would be willing to replace each other based
 		// on current config
+		ArrayList<String> approvedNames = new ArrayList<String>();
 		for(CandidateIdentifier candidate : theRawIDs) {
 			int threshold = CandidateIdentifier.getDistanceThreshold(candidate.id);
 			int maxDistance = threshold + 1;
-			CandidateIdentifier bestCandidate = null;
+			String bestCandidate = null;
 			// Skip the cleaning process if you're unknown
 			if(!candidate.equals(AnonymizerMain.unknownActor)) {
-				for(CandidateIdentifier alter : theRawIDs) {
+				for(String approvedName : approvedNames) {
 					// Don't match to myself or to unknown actors
-					if(!candidate.equals(alter) && !candidate.id.equals(AnonymizerMain.unknownActor)) {
-						
-						int alterThreshold = CandidateIdentifier.getDistanceThreshold(alter.id) + 1;
-						int distance = LevenshteinDistance(candidate.id, alter.id);
+						int alterThreshold = CandidateIdentifier.getDistanceThreshold(approvedName) + 1;
+						int distance = LevenshteinDistance(candidate.id, approvedName);
 						// Check for symmetry (Jan should replace Jane only if Jane and Jan would both match)
 						if(distance < maxDistance && distance < alterThreshold) {				
-							bestCandidate = alter;
+							bestCandidate = approvedName;
 							maxDistance = distance;
-							System.out.println("Original: " + candidate.id + " Best Candidate:" + bestCandidate.id + ", Distance: " + distance);
+							System.out.println("Original: " + candidate.id + " Best Candidate:" + approvedName + ", Distance: " + distance);
 						}
-					}
+					
 				}
 			}
 
 			if(bestCandidate != null) {
-				candidate.cleanedID = bestCandidate.id;
+				candidate.cleanedID = bestCandidate;
 			}
 			else {
 				candidate.cleanedID = candidate.id;
+				approvedNames.add(candidate.id);
 			}
 			
 			if(!uniqueIDs.contains(candidate.cleanedID)) {
@@ -179,8 +180,8 @@ public class CandidateIdentifier implements Comparable<CandidateIdentifier> {
 		return cost[len0-1];
 	}
 
-	void addVisualElementsToPanel(JPanel component) {
-		if(!id.equals(cleanedID)) {
+	void addVisualElementsToPanel(boolean showAll, JPanel component) {
+		if(showAll || !id.equals(cleanedID)) {
 			JTextField idField, cleanedField;
 			idField = new JTextField(id);
 			idField.setEditable(false);
