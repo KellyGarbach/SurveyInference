@@ -1,6 +1,6 @@
 columnsToAnonymize: Quest14a,Quest14b,Quest14c,Quest14d,Quest14e,Quest14f
-columnsIndicatingRespondent: respondent,opername
-columnHasRole: false
+columnsIndicatingRespondent: opername
+columnHasRole: true
 intraColumnDelimiter: :
-implicitRoole: Grower
+implicitRole: Grower
 cleaningThresholds: 3,3

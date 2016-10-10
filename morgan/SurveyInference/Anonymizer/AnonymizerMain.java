@@ -23,7 +23,11 @@
 
 package morgan.SurveyInference.Anonymizer;
 
+import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -31,17 +35,22 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 import javax.swing.BoxLayout;
+import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 
 import morgan.SurveyInference.Linker.TXTFileFilter;
@@ -52,8 +61,10 @@ import morgan.SurveyInference.Linker.TXTFileFilter;
  * @author gmorgan, kgarbach
  *
  */
-public class AnonymizerMain {
+public class AnonymizerMain implements ActionListener {
 
+	static AnonymizerMain theMain = new AnonymizerMain();
+	
 	/**
 	 * This is the list of the questions that indicate interaction partners.
 	 */
@@ -113,7 +124,26 @@ public class AnonymizerMain {
 	 * All names so far found, used in Minimum Edit Distance
 	 */
 	static HashSet<String> uniqueNames = new HashSet<String>();
-
+	
+	/**
+	 * All names and roles ever found
+	 */
+	static ArrayList<CandidateIdentifier> candidateNames  = new ArrayList<CandidateIdentifier>();
+	static ArrayList<CandidateIdentifier> candidateRoles = new ArrayList<CandidateIdentifier>();
+	static HashMap<String, CandidateIdentifier> candidateNameMap = new HashMap<String, CandidateIdentifier>();
+	static HashMap<String, CandidateIdentifier> candidateRoleMap = new HashMap<String, CandidateIdentifier>();
+	
+	/**
+	 * Checkboxes for review panels
+	 */
+	static JCheckBox showAllNames = new JCheckBox("Show only changed names");
+	static JCheckBox showAllRoles = new JCheckBox("Show only changed roles");
+	
+	/**
+	 * Holder Panels
+	 */
+	static JPanel nameReviewPanel, roleReviewPanel;
+	
 	/**
 	 * All roles so far found, used in Minimum Edit Distance
 	 */
@@ -198,9 +228,11 @@ public class AnonymizerMain {
 			File dataFile = dataFileChooser.getSelectedFile();
 			try {
 				JFrame progressFrame = new JFrame();
+				JTabbedPane tabbedPane = new JTabbedPane();
 				JPanel content = new JPanel();
+				tabbedPane.addTab("Main Log", content);
 				content.setLayout(new BoxLayout(content, BoxLayout.PAGE_AXIS));
-				progressFrame.setContentPane(content);
+				progressFrame.setContentPane(tabbedPane);
 				progressFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 				progressFrame.setTitle("Anonymizer!");
 				progressFrame.setPreferredSize(new Dimension(600,400));
@@ -227,13 +259,24 @@ public class AnonymizerMain {
 				//    Quest14a_Role, Quest14b_Role, Quest14c_Role, Quest14d_Role, Quest14e_Role,
 				Thread.sleep(1000);
 				cleanParticipants(pData);
+				
+				// Add review tabs
+				nameReviewPanel = prepareReviewPanel(candidateNameMap.values(), showAllNames);
+				roleReviewPanel = prepareReviewPanel(candidateRoleMap.values(), showAllRoles);
+				tabbedPane.addTab("Review Names", nameReviewPanel);
+				tabbedPane.addTab("Review Roles", roleReviewPanel);
+				
 				if(anonymize) {
 					// 5. Create "anonymous names"
 					Thread.sleep(1000);
 					anonymizeParticipants(pData);
 				}
 				// 6. Output new file
-				File fileToWrite = new File(dataFile.getParentFile().getCanonicalPath() + "//Cleaned_" + dataFile.getName());
+				String fileString = "//Anonymized_" + dataFile.getName();
+				if(!anonymize) {
+					fileString = "//Cleaned_" + dataFile.getName();
+				}
+				File fileToWrite = new File(dataFile.getParentFile().getCanonicalPath() + fileString);
 				writeDataFile(fileToWrite, pData);
 				Thread.sleep(1000);
 				progress.setString("Process Complete!");
@@ -248,6 +291,56 @@ public class AnonymizerMain {
 
 		}
 
+	}
+	
+	static JPanel prepareReviewPanel(Collection<CandidateIdentifier> candidateIDs, JCheckBox checkBox) {
+		
+		JPanel holderPanel = new JPanel();
+		holderPanel.setLayout(new BorderLayout());
+		JPanel reviewPanel = new JPanel();
+		JScrollPane scrollPanel = new JScrollPane(reviewPanel);
+		scrollPanel.setPreferredSize(new Dimension(400, 350));
+		holderPanel.add(scrollPanel, BorderLayout.CENTER);
+		GridLayout reviewLayout = new GridLayout(0, 2);
+		reviewPanel.setLayout(reviewLayout);
+		reviewPanel.add(new JLabel("Original"));
+		reviewPanel.add(new JLabel("Cleaned"));
+		
+		checkBox.setSelected(false);
+		checkBox.addActionListener(theMain);
+		holderPanel.add(checkBox, BorderLayout.NORTH);
+		
+		ArrayList<CandidateIdentifier> theIDs = new ArrayList<CandidateIdentifier>();
+		theIDs.addAll(candidateIDs);
+		Collections.sort(theIDs);
+		
+		for(CandidateIdentifier id : theIDs) {
+			id.addVisualElementsToPanel(!checkBox.isSelected(), reviewPanel);
+		}
+		
+		return holderPanel;
+	}
+	
+	static void updateReviewPanel(JPanel review, Collection<CandidateIdentifier> candidateIDs, JCheckBox checkBox) {
+		review.removeAll();
+		review.add(checkBox, BorderLayout.NORTH);
+		
+		JPanel reviewPanel = new JPanel();
+		JScrollPane scrollPanel = new JScrollPane(reviewPanel);
+		scrollPanel.setPreferredSize(new Dimension(400, 350));
+		review.add(scrollPanel, BorderLayout.CENTER);
+		GridLayout reviewLayout = new GridLayout(0, 2);
+		reviewPanel.setLayout(reviewLayout);
+		reviewPanel.add(new JLabel("Original"));
+		reviewPanel.add(new JLabel("Cleaned"));
+		
+		ArrayList<CandidateIdentifier> theIDs = new ArrayList<CandidateIdentifier>();
+		theIDs.addAll(candidateIDs);
+		Collections.sort(theIDs);
+		
+		for(CandidateIdentifier id : theIDs) {
+			id.addVisualElementsToPanel(!checkBox.isSelected(), reviewPanel);
+		}
 	}
 
 	/**
@@ -286,7 +379,7 @@ public class AnonymizerMain {
 					JOptionPane.showMessageDialog(null,  "Boolean value for configuration flag " + flag + " expected, but not found. " + dataMap.get(flag) + " was found.  Please replace with true/false.", "Configuration File Error: " + configFile.getName(), JOptionPane.ERROR_MESSAGE);
 				}
 			}
-			if(flag.equalsIgnoreCase("columnsToAnonymize")) {
+			else if(flag.equalsIgnoreCase("columnsToAnonymize")) {
 				columnsToAnonymize = dataMap.get(flag).split(",");
 			}
 			else if(flag.equalsIgnoreCase("columnsIndicatingRespondent")) {
@@ -440,6 +533,20 @@ public class AnonymizerMain {
 								}
 								participant.put(iPartner + partnerNameSuffix, pName);
 								participant.put(iPartner + partnerRoleSuffix, pRole);
+								
+								CandidateIdentifier cIDName = new CandidateIdentifier(pName);
+								CandidateIdentifier cIDRole = new CandidateIdentifier(pRole);
+								
+								if(!candidateNameMap.containsKey(pName)) {
+									candidateNameMap.put(pName, cIDName);
+									candidateNames.add(cIDName);
+								}
+								
+								if(!candidateRoleMap.containsKey(pRole)) {
+									candidateRoleMap.put(pRole, cIDRole);
+									candidateRoles.add(cIDRole);
+								}
+								
 							}
 							else {
 								if(partnerData.length() <= 3) {
@@ -447,6 +554,14 @@ public class AnonymizerMain {
 								}
 								participant.put(iPartner + partnerNameSuffix, unknownActor);
 								participant.put(iPartner + partnerRoleSuffix, partnerData);
+								
+								
+								CandidateIdentifier cIDRole = new CandidateIdentifier(partnerData);
+								
+								if(!candidateRoleMap.containsKey(partnerData)) {
+									candidateRoleMap.put(partnerData, cIDRole);
+									candidateRoles.add(cIDRole);
+								}
 							}
 						}
 						else {
@@ -455,6 +570,13 @@ public class AnonymizerMain {
 								partnerData = partnerData.toUpperCase();
 							}
 							participant.put(iPartner + partnerNameSuffix, partnerData);
+							
+							CandidateIdentifier cIDName = new CandidateIdentifier(partnerData);
+							
+							if(!candidateNameMap.containsKey(partnerData)) {
+								candidateNameMap.put(partnerData, cIDName);
+								candidateNames.add(cIDName);
+							}
 							//participant.put(iPartner + partnerRoleSuffix, implicitRole);
 						}
 					} catch (Exception e) {
@@ -469,6 +591,14 @@ public class AnonymizerMain {
 		}
 		for(String n : columnsIndicatingRespondent) {
 			participant.put(n + "_Role", implicitRole);
+			String nameData = participant.get(n).trim();
+			CandidateIdentifier cIDName = new CandidateIdentifier(nameData);
+			
+			if(!candidateNameMap.containsKey(nameData)) {
+				candidateNameMap.put(nameData, cIDName);
+				candidateNames.add(cIDName);
+			}
+			
 		}
 	}
 
@@ -482,11 +612,15 @@ public class AnonymizerMain {
 		int counter = 0;
 		progress.setString("Cleaning...");
 		textField.setText(textField.getText() + "\nCleaning...");
+		uniqueNames = CandidateIdentifier.cleanCandidateIDs(candidateNames, uniqueNames);
+		uniqueRoles = CandidateIdentifier.cleanCandidateIDs(candidateRoles, uniqueRoles);
 		for(HashMap<String, String> participant : pData) {
 			progress.setValue(++counter);
 			cleanParticipant(participant);
 		}
 	}
+	
+	
 
 	/**
 	 * Helper function per participant to clean each participant, we check against
@@ -498,12 +632,12 @@ public class AnonymizerMain {
 		for(String iPartner : columnsToAnonymize) {
 			String iPartnerName = iPartner + partnerNameSuffix;
 			String iPartnerRole = iPartner + partnerRoleSuffix;
-			cleanParticipantInfo(participant, iPartnerName, uniqueNames);
-			cleanParticipantInfo(participant, iPartnerRole, uniqueRoles);
+			cleanParticipantInfo(participant, iPartnerName, candidateNameMap);
+			cleanParticipantInfo(participant, iPartnerRole, candidateRoleMap);
 		}
 		for(String respondent : columnsIndicatingRespondent) {
-			cleanParticipantInfo(participant, respondent, uniqueNames);
-			cleanParticipantInfo(participant, respondent + partnerRoleSuffix, uniqueRoles);
+			cleanParticipantInfo(participant, respondent, candidateNameMap);
+			cleanParticipantInfo(participant, respondent + partnerRoleSuffix, candidateRoleMap);
 		}
 	}
 
@@ -515,31 +649,15 @@ public class AnonymizerMain {
 	 * @param key - the key to data that should be checked
 	 * @param uniqueSet - unique values that should be compared against
 	 */
-	static void cleanParticipantInfo(HashMap<String, String> participant, String key, HashSet<String> uniqueSet) {
+	static void cleanParticipantInfo(HashMap<String, String> participant, String key, Map<String, CandidateIdentifier> candidateMap) {
 		if(participant.containsKey(key)) {
 			String info = participant.get(key);
 			String cleanedInfo = info;
-			if(!info.equals(unknownActor)) {
-				// Ignore the unknown actors
-				int infoLength = info.length();
-				int closestThreshold;
-				if(cleaningThresholds == null) {
-					closestThreshold = 0;
-				}
-				else {
-					closestThreshold = cleaningThresholds.length;
-					for(int i = 0; i < cleaningThresholds.length; ++i) {
-						if(cleaningThresholds[i] >= infoLength) {
-							closestThreshold = i;
-							break;
-						}
-					}
-				}
-				System.out.println("Cleaning Check : " + info + " - " + closestThreshold);
-
-				cleanedInfo = getClosestName(closestThreshold, info, uniqueSet);
-
+			System.out.println("Searching for " + info + " in map with " + candidateMap.size() + " entries.");
+			if(candidateMap.containsKey(info)) {
+				cleanedInfo = candidateMap.get(info).cleanedID;
 			}
+			System.out.println("Cleaning: " + info + " - " + cleanedInfo);			
 			textField.setText(textField.getText() + "\n\t" + key + " - " + info + ":" + cleanedInfo);
 			participant.put(key + cleanExtension, cleanedInfo);
 		}
@@ -559,9 +677,12 @@ public class AnonymizerMain {
 		HashMap<String, String> anonymousNames = new HashMap<String,String>();
 		int nameCounter = 0;
 		for(String name : uniqueNames) {
-			String anonName = "Name" + ++nameCounter;
-			textField.setText(textField.getText() + "\n\t" + name + ":" + anonName);
-			anonymousNames.put(name, anonName);
+			// Skip the Unknown Actor
+			if(!name.equals(AnonymizerMain.unknownActor)) {
+				String anonName = "Name" + ++nameCounter;
+				textField.setText(textField.getText() + "\n\t" + name + ":" + anonName);
+				anonymousNames.put(name, anonName);
+			}
 		}
 
 		for(HashMap<String, String> participant : pData) {
@@ -695,93 +816,16 @@ public class AnonymizerMain {
 		writer.close();
 	}
 
-	/**
-	 * Of all names already seen in the data-set, examine them and, if any are close enough,
-	 * identify this name as the same as the other name.
-	 * 
-	 * This uses the Levenshtein, also known as Minimum Edit, Distance to compare the strings
-	 * 
-	 * The first-found most similar name is returned.
-	 * 
-	 * @param maxDistance - the amount of difference between names that are actually the same name
-	 * @param target - the string to be checked against prior-found names
-	 * @return the closest string, if any based on the max-distance, null if no suitable string is found.
-	 */
-	static String getClosestName(int maxDistance, String target, HashSet<String> uniqueSet) {
-		String currentBest = null;
-		int currentLowestDistance = maxDistance + 1;
-
-		for(String currentName : uniqueSet) {
-			int distance = LevenshteinDistance(target, currentName);
-			if(distance < currentLowestDistance) {
-				currentBest = currentName;
-				currentLowestDistance = distance;
-			}
+	public void actionPerformed(ActionEvent e) {
+		// TODO Auto-generated method stub
+		if(e.getSource().equals(showAllNames)) {
+			updateReviewPanel(nameReviewPanel, candidateNameMap.values(), showAllNames);
 		}
-
-		if(currentBest == null) {
-			//System.out.println("Adding " + target + " to the name-list.");
-			if(!uniqueSet.contains(target)) {
-				uniqueSet.add(target);
-			}
-			return target;
+		else if(e.getSource().equals(showAllRoles)) {
+			updateReviewPanel(roleReviewPanel, candidateRoleMap.values(), showAllRoles);
 		}
-
-		return currentBest;
 	}
 
-	/**
-	 * This implementation is taken entirely from 
-	 * http://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distance
-	 * 
-	 * Note, we can edit the insert, delete, and modify distances to suit our needs
-	 * 
-	 * Accessed July 7th, 2014
-	 * 
-	 * @param s0 - string to compare, e.g. "kitten"
-	 * @param s1 - other string to compare, e.g., "sitting"
-	 * @return the Levenshtein Distance, or Minimum Edit Distance, which would be 3 between "kitten" and "sitting"
-	 */
-	static public int LevenshteinDistance (String s0, String s1) {
-		int len0 = s0.length()+1;
-		int len1 = s1.length()+1;
 
-		// the array of distances
-		int[] cost = new int[len0];
-		int[] newcost = new int[len0];
-
-		// initial cost of skipping prefix in String s0
-		for(int i=0;i<len0;i++) cost[i]=i;
-
-		// dynamically computing the array of distances
-
-		// transformation cost for each letter in s1
-		for(int j=1;j<len1;j++) {
-
-			// initial cost of skipping prefix in String s1
-			newcost[0]=j-1;
-
-			// transformation cost for each letter in s0
-			for(int i=1;i<len0;i++) {
-
-				// matching current letters in both strings
-				int match = (s0.charAt(i-1)==s1.charAt(j-1))?0:1;
-
-				// computing cost for each transformation
-				int cost_replace = cost[i-1]+match;
-				int cost_insert  = cost[i]+1;
-				int cost_delete  = newcost[i-1]+1;
-
-				// keep minimum cost
-				newcost[i] = Math.min(Math.min(cost_insert, cost_delete),cost_replace );
-			}
-
-			// swap cost/newcost arrays
-			int[] swap=cost; cost=newcost; newcost=swap;
-		}
-
-		// the distance is the cost for transforming all letters in both strings
-		return cost[len0-1];
-	}
 
 }
